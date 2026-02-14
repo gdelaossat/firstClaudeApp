@@ -1,0 +1,16 @@
+{
+  "name": "firstClaudeApp",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspace",
+  "forwardPorts": [5169, 1433],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-dotnettools.csdevkit",
+        "ms-mssql.mssql"
+      ]
+    }
+  },
+  "postCreateCommand": "dotnet restore && cd Tests && dotnet restore"
+}

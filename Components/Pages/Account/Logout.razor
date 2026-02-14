@@ -1,0 +1,18 @@
+@page "/Account/Logout"
+
+<PageTitle>Logout</PageTitle>
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body text-center">
+                <h5>Are you sure you want to logout?</h5>
+                <form method="post" action="/Account/PerformLogout" class="mt-3">
+                    <AntiforgeryToken />
+                    <button type="submit" class="btn btn-danger">Logout</button>
+                    <a href="/" class="btn btn-secondary ms-2">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

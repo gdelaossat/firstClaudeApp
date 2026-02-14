@@ -1,0 +1,62 @@
+@page "/Account/Register"
+@using Microsoft.AspNetCore.Antiforgery
+@inject IAntiforgery Antiforgery
+@inject IHttpContextAccessor HttpContextAccessor
+
+<PageTitle>Register</PageTitle>
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <h1>Register</h1>
+
+        @if (!string.IsNullOrEmpty(ErrorMessage))
+        {
+            <div class="alert alert-danger">@ErrorMessage</div>
+        }
+
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Create a new account</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" action="/Account/PerformRegister">
+                    <AntiforgeryToken />
+
+                    <div class="mb-3">
+                        <label for="displayName" class="form-label">Display Name</label>
+                        <input type="text" id="displayName" name="displayName" class="form-control" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" id="email" name="email" class="form-control" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" id="password" name="password" class="form-control" required minlength="6" />
+                        <small class="text-muted">Minimum 6 characters, must include uppercase, lowercase, and a digit.</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="confirmPassword" class="form-label">Confirm Password</label>
+                        <input type="password" id="confirmPassword" name="confirmPassword" class="form-control" required />
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100">Register</button>
+                </form>
+
+                <hr />
+
+                <p class="text-center">Already have an account? <a href="/Account/Login">Login here</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromQuery]
+    public string? Error { get; set; }
+
+    private string? ErrorMessage => Error;
+}

@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet run:*)",
+      "Bash(npx claude-code-templates@latest --agent=git/git-flow-manager --yes)",
+      "Bash(where:*)",
+      "Bash(where npm:*)",
+      "Bash(git config:*)",
+      "Bash(findstr:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ]
+  }
+}
