@@ -54,9 +54,13 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
+    app.UseStatusCodePagesWithReExecute("/not-found");
 }
-app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
-app.UseHttpsRedirection();
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -152,7 +156,7 @@ app.MapGet("/Account/ExternalLoginCallback", async (
     string? returnUrl = null,
     string? remoteError = null) =>
 {
-    returnUrl ??= "/";
+    if (string.IsNullOrEmpty(returnUrl)) returnUrl = "/";
 
     if (remoteError != null)
     {
