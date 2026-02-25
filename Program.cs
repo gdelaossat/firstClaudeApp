@@ -1,10 +1,18 @@
 using firstClaudeApp.Components;
+using firstClaudeApp.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+// Substack Chat Summarizer services
+builder.Services.AddSingleton<SettingsService>();
+builder.Services.AddSingleton<SummaryStore>();
+builder.Services.AddHttpClient<SubstackChatService>();
+builder.Services.AddHttpClient<ClaudeSummaryService>();
+builder.Services.AddHostedService<ChatSummaryBackgroundService>();
 
 var app = builder.Build();
 

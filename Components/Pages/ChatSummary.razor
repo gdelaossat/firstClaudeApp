@@ -1,0 +1,286 @@
+@page "/chat-summary"
+@rendermode InteractiveServer
+@using firstClaudeApp.Models
+@using firstClaudeApp.Services
+@inject SubstackChatService SubstackService
+@inject ClaudeSummaryService ClaudeService
+@inject SettingsService Settings
+@inject SummaryStore Store
+
+<PageTitle>Chat Summary - Substack</PageTitle>
+
+<h1>Resumen del Chat</h1>
+<p>Genera resúmenes del chat de tu suscripción de Substack con IA.</p>
+
+@if (!Settings.IsConfigured)
+{
+    <div class="alert alert-warning">
+        <strong>Configuración necesaria:</strong> Ve a <a href="/settings">Configuración</a> para ingresar tu cookie de sesión de Substack y tu API key de Anthropic.
+    </div>
+}
+else
+{
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Generar Resumen</h5>
+                    <div class="mb-3">
+                        <label class="form-label">Período</label>
+                        <select class="form-select" @bind="selectedHours">
+                            <option value="6">Últimas 6 horas</option>
+                            <option value="12">Últimas 12 horas</option>
+                            <option value="24">Últimas 24 horas</option>
+                            <option value="48">Últimas 48 horas</option>
+                            <option value="168">Última semana</option>
+                        </select>
+                    </div>
+                    @if (channels.Count > 0)
+                    {
+                        <div class="mb-3">
+                            <label class="form-label">Canal</label>
+                            <select class="form-select" @bind="selectedChannelId">
+                                @foreach (var ch in channels)
+                                {
+                                    <option value="@ch.Id">@ch.Name</option>
+                                }
+                            </select>
+                        </div>
+                    }
+                    <button class="btn btn-primary" @onclick="GenerateSummaryAsync" disabled="@isLoading">
+                        @if (isLoading)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                            <span>@loadingMessage</span>
+                        }
+                        else
+                        {
+                            <span>Generar Resumen</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Canales</h5>
+                    <button class="btn btn-outline-secondary btn-sm mb-2" @onclick="LoadChannelsAsync" disabled="@isLoadingChannels">
+                        @if (isLoadingChannels)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                        }
+                        Cargar canales
+                    </button>
+                    @if (channels.Count > 0)
+                    {
+                        <ul class="list-group list-group-flush">
+                            @foreach (var ch in channels)
+                            {
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    @ch.Name
+                                    <span class="badge bg-secondary">@ch.ChannelType</span>
+                                </li>
+                            }
+                        </ul>
+                    }
+                    else if (!isLoadingChannels)
+                    {
+                        <p class="text-muted mb-0">Haz clic en "Cargar canales" para ver los chats disponibles.</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible">
+            @errorMessage
+            <button type="button" class="btn-close" @onclick="() => errorMessage = string.Empty"></button>
+        </div>
+    }
+
+    @if (currentSummary != null)
+    {
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Resumen: @currentSummary.ChannelName</h5>
+                <small class="text-muted">
+                    @currentSummary.PeriodStart.ToLocalTime().ToString("dd/MM HH:mm") -
+                    @currentSummary.PeriodEnd.ToLocalTime().ToString("dd/MM HH:mm")
+                </small>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h3 class="mb-0">@currentSummary.TotalMessages</h3>
+                            <small class="text-muted">Mensajes</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h3 class="mb-0">@currentSummary.Statistics.UniqueParticipants</h3>
+                            <small class="text-muted">Participantes</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Más activos:</strong>
+                        <ul class="mb-0">
+                            @foreach (var user in currentSummary.Statistics.MostActiveUsers.Take(5))
+                            {
+                                <li><small>@user</small></li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+
+                @if (currentSummary.Statistics.MessagesByHour.Count > 0)
+                {
+                    <h6>Actividad por hora</h6>
+                    <div class="mb-3" style="display: flex; align-items: flex-end; gap: 2px; height: 60px;">
+                        @{
+                            var maxMsgs = currentSummary.Statistics.MessagesByHour.Values.DefaultIfEmpty(1).Max();
+                        }
+                        @foreach (var kvp in currentSummary.Statistics.MessagesByHour.OrderBy(x => x.Key))
+                        {
+                            var heightPct = maxMsgs > 0 ? (kvp.Value * 100 / maxMsgs) : 0;
+                            <div title="@kvp.Key: @kvp.Value msgs"
+                                 style="flex: 1; background: #6366f1; min-height: 2px; height: @(heightPct)%; border-radius: 2px 2px 0 0;">
+                            </div>
+                        }
+                    </div>
+                }
+
+                <hr />
+                <h6>Resumen con IA</h6>
+                <div class="summary-content">
+                    @((MarkupString)Markdig.Markdown.ToHtml(currentSummary.AiSummary))
+                </div>
+            </div>
+            <div class="card-footer text-muted">
+                <small>Generado: @currentSummary.GeneratedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")</small>
+            </div>
+        </div>
+    }
+
+    @{
+        var previousSummaries = Store.GetSummaries();
+    }
+    @if (previousSummaries.Count > 0)
+    {
+        <h4>Resúmenes anteriores</h4>
+        <div class="accordion" id="summaryHistory">
+            @foreach (var summary in previousSummaries)
+            {
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#summary-@summary.Id">
+                            @summary.ChannelName -
+                            @summary.PeriodStart.ToLocalTime().ToString("dd/MM HH:mm") a @summary.PeriodEnd.ToLocalTime().ToString("dd/MM HH:mm")
+                            (@summary.TotalMessages msgs)
+                        </button>
+                    </h2>
+                    <div id="summary-@summary.Id" class="accordion-collapse collapse" data-bs-parent="#summaryHistory">
+                        <div class="accordion-body">
+                            @((MarkupString)Markdig.Markdown.ToHtml(summary.AiSummary))
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+}
+
+@code {
+    private List<SubstackChatChannel> channels = new();
+    private long selectedChannelId;
+    private int selectedHours = 24;
+    private bool isLoading;
+    private bool isLoadingChannels;
+    private string loadingMessage = "";
+    private string errorMessage = "";
+    private ChatSummary? currentSummary;
+
+    private async Task LoadChannelsAsync()
+    {
+        isLoadingChannels = true;
+        try
+        {
+            var settings = Settings.GetSettings();
+            channels = await SubstackService.GetChannelsForPublicationAsync(settings.PublicationSubdomain);
+            if (channels.Count > 0)
+                selectedChannelId = channels.First().Id;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error al cargar canales: {ex.Message}";
+        }
+        finally
+        {
+            isLoadingChannels = false;
+        }
+    }
+
+    private async Task GenerateSummaryAsync()
+    {
+        if (selectedChannelId == 0)
+        {
+            // Try to load channels first
+            await LoadChannelsAsync();
+            if (channels.Count == 0)
+            {
+                errorMessage = "No se encontraron canales. Verifica tu cookie de sesión en Configuración.";
+                return;
+            }
+        }
+
+        isLoading = true;
+        errorMessage = "";
+        try
+        {
+            loadingMessage = "Obteniendo mensajes...";
+            StateHasChanged();
+
+            var since = DateTime.UtcNow.AddHours(-selectedHours);
+            var messages = await SubstackService.GetAllRecentMessagesAsync(selectedChannelId, 500, since);
+
+            if (messages.Count == 0)
+            {
+                errorMessage = "No se encontraron mensajes en el período seleccionado.";
+                return;
+            }
+
+            loadingMessage = $"Resumiendo {messages.Count} mensajes con IA...";
+            StateHasChanged();
+
+            var channelName = channels.FirstOrDefault(c => c.Id == selectedChannelId)?.Name ?? "Chat";
+            var aiSummary = await ClaudeService.SummarizeMessagesAsync(messages, channelName);
+            var statistics = SubstackService.CalculateStatistics(messages);
+
+            currentSummary = new ChatSummary
+            {
+                ChannelName = channelName,
+                ChannelId = selectedChannelId,
+                PeriodStart = since,
+                PeriodEnd = DateTime.UtcNow,
+                TotalMessages = messages.Count,
+                AiSummary = aiSummary,
+                Statistics = statistics
+            };
+
+            Store.AddSummary(currentSummary);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+            loadingMessage = "";
+        }
+    }
+}

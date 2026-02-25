@@ -1,0 +1,129 @@
+@page "/settings"
+@rendermode InteractiveServer
+@using firstClaudeApp.Models
+@using firstClaudeApp.Services
+@inject SettingsService SettingsService
+
+<PageTitle>Configuración</PageTitle>
+
+<h1>Configuración</h1>
+<p>Configura las credenciales y opciones para el resumen del chat de Substack.</p>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Substack</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Cookie de sesión (substack.sid)</label>
+                    <input type="password" class="form-control" @bind="settings.SessionCookie"
+                           placeholder="Tu cookie substack.sid" />
+                    <div class="form-text">
+                        Para obtenerla: abre Substack en tu navegador, abre DevTools (F12),
+                        ve a Application > Cookies > substack.com, y copia el valor de <code>substack.sid</code>.
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Subdominio de la publicación</label>
+                    <input type="text" class="form-control" @bind="settings.PublicationSubdomain"
+                           placeholder="pobremillenial" />
+                    <div class="form-text">
+                        El subdominio de la publicación (ej: <code>pobremillenial</code> para pobremillenial.substack.com).
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Anthropic (Claude AI)</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">API Key</label>
+                    <input type="password" class="form-control" @bind="settings.AnthropicApiKey"
+                           placeholder="sk-ant-..." />
+                    <div class="form-text">
+                        Obtén tu API key en <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a>.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Resumen automático</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3 form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="autoSummary" @bind="settings.AutoSummaryEnabled" />
+                    <label class="form-check-label" for="autoSummary">Activar resumen automático periódico</label>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Intervalo (horas)</label>
+                    <input type="number" class="form-control" @bind="settings.SummaryIntervalHours" min="1" max="168" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Máximo de mensajes a obtener</label>
+                    <input type="number" class="form-control" @bind="settings.MaxMessagesToFetch" min="50" max="2000" />
+                </div>
+            </div>
+        </div>
+
+        <button class="btn btn-primary" @onclick="SaveSettings">Guardar configuración</button>
+
+        @if (saved)
+        {
+            <span class="text-success ms-2">Configuración guardada.</span>
+        }
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Instrucciones</h5>
+            </div>
+            <div class="card-body">
+                <h6>1. Cookie de Substack</h6>
+                <ol class="small">
+                    <li>Abre <a href="https://substack.com" target="_blank">substack.com</a> e inicia sesión</li>
+                    <li>Abre DevTools (F12)</li>
+                    <li>Ve a <strong>Application</strong> > <strong>Cookies</strong></li>
+                    <li>Busca <code>substack.sid</code></li>
+                    <li>Copia el valor completo</li>
+                </ol>
+                <hr />
+                <h6>2. API Key de Anthropic</h6>
+                <ol class="small">
+                    <li>Ve a <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a></li>
+                    <li>Crea una cuenta o inicia sesión</li>
+                    <li>Ve a <strong>Settings</strong> > <strong>API Keys</strong></li>
+                    <li>Crea una nueva key y cópiala</li>
+                </ol>
+                <hr />
+                <div class="alert alert-info small mb-0">
+                    <strong>Nota:</strong> Las credenciales se almacenan solo en memoria del servidor.
+                    Se perderán al reiniciar la aplicación.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private SubstackSettings settings = new();
+    private bool saved;
+
+    protected override void OnInitialized()
+    {
+        settings = SettingsService.GetSettings();
+    }
+
+    private void SaveSettings()
+    {
+        SettingsService.UpdateSettings(settings);
+        saved = true;
+    }
+}
