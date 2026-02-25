@@ -2,6 +2,10 @@ using System.Text.Json.Serialization;
 
 namespace firstClaudeApp.Models;
 
+/// <summary>
+/// Represents a Substack chat message. Field names match the actual API response
+/// as documented by the Substack Chat Exporter Chrome extension.
+/// </summary>
 public class SubstackMessage
 {
     [JsonPropertyName("id")]
@@ -13,20 +17,45 @@ public class SubstackMessage
     [JsonPropertyName("body_json")]
     public object? BodyJson { get; set; }
 
-    [JsonPropertyName("name")]
-    public string Name { get; set; } = string.Empty;
+    [JsonPropertyName("user_name")]
+    public string UserName { get; set; } = string.Empty;
+
+    [JsonPropertyName("user_handle")]
+    public string? UserHandle { get; set; }
 
     [JsonPropertyName("user_id")]
     public long UserId { get; set; }
 
-    [JsonPropertyName("photo_url")]
-    public string? PhotoUrl { get; set; }
+    [JsonPropertyName("user_photo_url")]
+    public string? UserPhotoUrl { get; set; }
 
-    [JsonPropertyName("timestamp")]
-    public DateTime Timestamp { get; set; }
+    [JsonPropertyName("created_at")]
+    public DateTime CreatedAt { get; set; }
 
-    [JsonPropertyName("channel_id")]
-    public long ChannelId { get; set; }
+    [JsonPropertyName("updated_at")]
+    public DateTime? UpdatedAt { get; set; }
+
+    [JsonPropertyName("publication_id")]
+    public long PublicationId { get; set; }
+
+    [JsonPropertyName("link_url")]
+    public string? LinkUrl { get; set; }
+
+    [JsonPropertyName("audience")]
+    public string? Audience { get; set; }
+
+    [JsonPropertyName("comment_count")]
+    public int CommentCount { get; set; }
+
+    [JsonPropertyName("reaction_count")]
+    public int ReactionCount { get; set; }
+
+    // Backward-compatible accessors for the service layer
+    [JsonIgnore]
+    public string Name => UserName;
+
+    [JsonIgnore]
+    public DateTime Timestamp => CreatedAt;
 }
 
 public class SubstackChatChannel

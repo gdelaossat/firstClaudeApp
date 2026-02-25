@@ -4,6 +4,14 @@ using firstClaudeApp.Models;
 
 namespace firstClaudeApp.Services;
 
+/// <summary>
+/// Service to fetch chat messages from Substack's internal API.
+///
+/// NOTE: Substack does not have an official public API for chat. These endpoints
+/// are based on reverse-engineering. The exact URLs may need adjustment once you
+/// inspect real traffic via browser DevTools (Network tab → XHR filter while on
+/// https://substack.com/chat). Auth uses the connect.sid session cookie.
+/// </summary>
 public class SubstackChatService
 {
     private readonly HttpClient _httpClient;
@@ -21,8 +29,10 @@ public class SubstackChatService
     private void ConfigureRequest(HttpRequestMessage request)
     {
         var settings = _settingsService.GetSettings();
-        request.Headers.Add("Cookie", $"substack.sid={settings.SessionCookie}");
+        // Substack uses connect.sid for authentication; some libraries also reference substack.sid
+        request.Headers.Add("Cookie", $"connect.sid={settings.SessionCookie}; substack.sid={settings.SessionCookie}");
         request.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
+        request.Headers.Add("Accept", "application/json");
     }
 
     public async Task<List<SubstackChatChannel>> GetChatChannelsAsync()
